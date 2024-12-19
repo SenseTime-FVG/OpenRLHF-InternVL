@@ -29,10 +29,11 @@ def train(args):
         target_modules=args.target_modules,
         ds_config=strategy.get_ds_train_config(is_actor=True),
         packing_samples=args.packing_samples,
+        internvl=args.internvl
     )
 
     # configure tokenizer
-    tokenizer = get_tokenizer(args.pretrain, model.model, "right", strategy, use_fast=not args.disable_fast_tokenizer)
+    tokenizer = get_tokenizer(args.pretrain, model.model, "right", strategy, use_fast=not args.disable_fast_tokenizer,internvl=args.internvl)
     strategy.print(model)
 
     # load weights for ref model
@@ -43,10 +44,11 @@ def train(args):
         load_in_4bit=args.load_in_4bit,
         ds_config=strategy.get_ds_eval_config(offload=args.ref_offload),
         packing_samples=args.packing_samples,
+        internvl=args.internvl
     )
     if args.ref_offload:
         ref_model._offload = True
-    get_tokenizer(args.pretrain, ref_model.model, "right", strategy, use_fast=not args.disable_fast_tokenizer)
+    get_tokenizer(args.pretrain, ref_model.model, "right", strategy, use_fast=not args.disable_fast_tokenizer,internvl=args.internvl)
 
     # gradient_checkpointing
     if args.gradient_checkpointing:
@@ -248,6 +250,7 @@ if __name__ == "__main__":
 
     # TensorBoard parameters
     parser.add_argument("--use_tensorboard", type=str, default=None, help="TensorBoard logging path")
+    parser.add_argument("--internvl", action="store_true",default=False, help="Use InternVL Model")
 
     args = parser.parse_args()
 

@@ -135,7 +135,7 @@ dmypy.json
 
 # macos
 *.DS_Store
-#data/
+data
 
 docs/.build
 
@@ -143,9 +143,11 @@ docs/.build
 *.pt
 
 core
-*/ckpt/*
+ckpt
 .vscode
 .nfs*
 *jianh*
 *test_scripts*
 */checkpoint/*
+examples/scripts/test.sh
+examples/scripts/test_internvl.sh

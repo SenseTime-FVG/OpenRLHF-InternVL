@@ -2,7 +2,17 @@ import os
 
 from datasets import interleave_datasets, load_dataset, load_from_disk
 from transformers import AutoTokenizer
-
+import sys
+sys.path.append("../")
+sys.path.append("../../")
+# sys.path.append("../internvl")
+# sys.path.append("/mnt/afs/wangjiahao/workspace/OpenRLHF/openrlhf/internvl")
+#sys.path.append("/mnt/afs/wangjiahao/workspace/OpenRLHF/openrlhf/")
+from ..internvl.train.constants import (BOX_END_TOKEN, BOX_START_TOKEN,
+                                      IMG_CONTEXT_TOKEN, IMG_END_TOKEN,
+                                      IMG_START_TOKEN, QUAD_END_TOKEN,
+                                      QUAD_START_TOKEN, REF_END_TOKEN,
+                                      REF_START_TOKEN)
 
 DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"
@@ -10,8 +20,35 @@ DEFAULT_BOS_TOKEN = "<s>"
 DEFAULT_UNK_TOKEN = "<unk>"
 
 
-def get_tokenizer(pretrain, model, padding_side="left", strategy=None, use_fast=True):
-    tokenizer = AutoTokenizer.from_pretrained(pretrain, trust_remote_code=True, use_fast=use_fast)
+def get_tokenizer(pretrain, model, padding_side="left", strategy=None, use_fast=True,internvl=False):
+    if internvl:
+        tokenizer_path = pretrain
+        #logger.info(f'Loading Tokenizer: {tokenizer_path}')
+        print(f'Loading Tokenizer: {tokenizer_path}')
+        tokenizer = AutoTokenizer.from_pretrained(
+            tokenizer_path, add_eos_token=False, trust_remote_code=False, use_fast=True)
+        tokenizer.tokenizer_path = tokenizer_path
+        #tokenizer.model_max_length = data_args.max_seq_length
+        tokenizer.model_max_length = 8192
+        #改成参数
+        #if model_args.add_special_token:
+        add_special_token = True
+        if add_special_token:
+            token_list = [IMG_START_TOKEN, IMG_END_TOKEN, IMG_CONTEXT_TOKEN,
+                        QUAD_START_TOKEN, QUAD_END_TOKEN, REF_START_TOKEN,
+                        REF_END_TOKEN, BOX_START_TOKEN, BOX_END_TOKEN]
+            num_new_tokens = tokenizer.add_tokens(token_list, special_tokens=True)
+            img_context_token_id = tokenizer.convert_tokens_to_ids(IMG_CONTEXT_TOKEN)
+            #logger.info(f"num_new_tokens: {num_new_tokens} img_context_token_id: {img_context_token_id}")
+            print(f"num_new_tokens: {num_new_tokens} img_context_token_id: {img_context_token_id}")
+        else:
+            token_list = [IMG_CONTEXT_TOKEN, ]
+            num_new_tokens = tokenizer.add_tokens(token_list, special_tokens=True)
+            img_context_token_id = tokenizer.convert_tokens_to_ids(IMG_CONTEXT_TOKEN)
+            #logger.info(f"num_new_tokens: {num_new_tokens} img_context_token_id: {img_context_token_id}")
+            print(f"num_new_tokens: {num_new_tokens} img_context_token_id: {img_context_token_id}")
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(pretrain, trust_remote_code=True, use_fast=use_fast)
     tokenizer.padding_side = padding_side
     # NOTE: When enable vLLM, do not resize_token_embeddings, or the vocab size will mismatch with vLLM.
     # https://github.com/facebookresearch/llama-recipes/pull/196
@@ -78,9 +115,10 @@ def blending_datasets(
             data = load_dataset(ext, data_files=dataset)
             strategy.print(f"loaded {dataset} with data_files={dataset}")
         # local dataset saved with `datasets.Dataset.save_to_disk`
-        elif os.path.isdir(dataset):
-            data = load_from_disk(dataset)
-            strategy.print(f"loaded {dataset} from disk")
+        # 这里是自己注释掉的
+        # elif os.path.isdir(dataset):
+        #     data = load_from_disk(dataset)
+        #     strategy.print(f"loaded {dataset} from disk")
         # remote/local folder or common file
         else:
             data = load_dataset(dataset, data_dir=data_dir)

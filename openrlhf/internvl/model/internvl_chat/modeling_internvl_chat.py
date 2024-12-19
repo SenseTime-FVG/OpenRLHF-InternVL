@@ -9,8 +9,10 @@ import re
 
 import torch.utils.checkpoint
 import torch.distributed as dist
-from internvl.model.internlm2.modeling_internlm2 import InternLM2ForCausalLM
-from internvl.model.phi3.modeling_phi3 import Phi3ForCausalLM
+# from internvl.model.internlm2.modeling_internlm2 import InternLM2ForCausalLM
+# from internvl.model.phi3.modeling_phi3 import Phi3ForCausalLM
+from ..internlm2.modeling_internlm2 import InternLM2ForCausalLM
+from ..phi3.modeling_phi3 import Phi3ForCausalLM
 from peft import LoraConfig, get_peft_model
 from torch import nn
 from torch.nn import CrossEntropyLoss

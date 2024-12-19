@@ -10,7 +10,25 @@ from transformers.integrations.deepspeed import HfDeepSpeedConfig
 
 from .ring_attn_utils import convert_ring_attn_params
 from .utils import log_probs_from_logits, reset_position_ids
-
+import sys
+# sys.path.append("/mnt/afs/wangjiahao/workspace/OpenRLHF/openrlhf/cli/internvl")
+# sys.path.append("/mnt/afs/wangjiahao/workspace/OpenRLHF/openrlhf/cli")
+sys.path.append("../")
+sys.path.append("../../")
+from ..internvl.dist_utils import init_dist
+from ..internvl.model import *
+from ..internvl.patch import (concat_pad_data_collator, packed_pad_data_collator,
+                            replace_llama_rmsnorm_with_fused_rmsnorm,
+                            replace_train_sampler, replace_internlm2_attention_class,
+                            replace_qwen2_attention_class, dpo_concat_pad_data_collator,
+                            kto_concat_pad_data_collator)
+from ..internvl.train.constants import (BOX_END_TOKEN, BOX_START_TOKEN,
+                                      IMG_CONTEXT_TOKEN, IMG_END_TOKEN,
+                                      IMG_START_TOKEN, QUAD_END_TOKEN,
+                                      QUAD_START_TOKEN, REF_END_TOKEN,
+                                      REF_START_TOKEN)
+from ..internvl.train.dataset import (TCSLoader, build_datasets)
+from ..internvl.train.trainer_monkey_patch import replace_create_optimizer, add_conine_with_min_lr_scheduler
 
 class Actor(nn.Module):
     """
@@ -45,6 +63,7 @@ class Actor(nn.Module):
         ds_config=None,
         device_map=None,
         packing_samples=False,
+        internvl=False,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -69,15 +88,46 @@ class Actor(nn.Module):
                 )
             else:
                 nf4_config = None
+            if internvl:
+                #logger.info('Loading InternVLChatModel...')
+                print('Loading InternVLChatModel...')
+                config = InternVLChatConfig.from_pretrained(pretrain_or_model)
+                config.vision_config.drop_path_rate = 0.4
+                if config.llm_config.model_type == 'internlm2':
+                    config.llm_config.attn_implementation = 'flash_attention_2'  # for InternLM
+                    #logger.info('Using flash_attention_2 for InternLM')
+                    print('Using flash_attention_2 for InternLM')
+                else:
+                    config.llm_config._attn_implementation = 'flash_attention_2'  # for LLaMA
+                    #logger.info('Using flash_attention_2 for LLaMA')
+                    print('Using flash_attention_2 for LLaMA')
+                #要改成传进来的参数
+                # config.template = data_args.conv_style
+                # config.select_layer = model_args.vision_select_layer
+                # config.dynamic_image_size = data_args.dynamic_image_size
+                # config.use_thumbnail = data_args.use_thumbnail
+                # config.ps_version = model_args.ps_version
+                # config.min_dynamic_patch = data_args.min_dynamic_patch
+                # config.max_dynamic_patch = data_args.max_dynamic_patch
+                config.template = "internlm2-chat-v3"
+                config.select_layer = -1
+                config.dynamic_image_size = True
+                config.use_thumbnail = True
+                config.ps_version = 'v2'
+                config.min_dynamic_patch = 1
+                config.max_dynamic_patch = 12
+                self.model = InternVLChatModel.from_pretrained(
+                    pretrain_or_model, torch_dtype=torch.bfloat16, config=config)
 
-            self.model = AutoModelForCausalLM.from_pretrained(
-                pretrain_or_model,
-                trust_remote_code=True,
-                attn_implementation=attn_implementation,
-                quantization_config=nf4_config,
-                torch_dtype=torch.bfloat16 if bf16 else "auto",
-                device_map=device_map,
-            )
+            else:
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    pretrain_or_model,
+                    trust_remote_code=True,
+                    attn_implementation=attn_implementation,
+                    quantization_config=nf4_config,
+                    torch_dtype=torch.bfloat16 if bf16 else "auto",
+                    device_map=device_map,
+                )
 
             # LoRA
             if lora_rank > 0:

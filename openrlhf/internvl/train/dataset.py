@@ -16,7 +16,8 @@ import numpy as np
 import torch
 import torchvision.transforms as T
 import transformers
-from internvl.conversation import get_conv_template
+#from internvl.conversation import get_conv_template
+from ..conversation import get_conv_template
 from PIL import Image
 from torch.utils.data import Dataset, ConcatDataset
 from torchvision.transforms.functional import InterpolationMode
