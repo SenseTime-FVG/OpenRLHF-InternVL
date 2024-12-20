@@ -47,6 +47,7 @@ def get_tokenizer(pretrain, model, padding_side="left", strategy=None, use_fast=
             img_context_token_id = tokenizer.convert_tokens_to_ids(IMG_CONTEXT_TOKEN)
             #logger.info(f"num_new_tokens: {num_new_tokens} img_context_token_id: {img_context_token_id}")
             print(f"num_new_tokens: {num_new_tokens} img_context_token_id: {img_context_token_id}")
+        return tokenizer
     else:
         tokenizer = AutoTokenizer.from_pretrained(pretrain, trust_remote_code=True, use_fast=use_fast)
     tokenizer.padding_side = padding_side

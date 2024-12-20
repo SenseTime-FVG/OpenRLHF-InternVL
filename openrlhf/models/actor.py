@@ -118,7 +118,13 @@ class Actor(nn.Module):
                 config.max_dynamic_patch = 12
                 self.model = InternVLChatModel.from_pretrained(
                     pretrain_or_model, torch_dtype=torch.bfloat16, config=config)
-
+                self.model.img_context_token_id = 151667
+                self.model.neftune_alpha = None
+                self.model.config.force_image_size = 448
+                self.model.num_image_token = 256
+                self.model.language_model.config.use_cache = False
+                #self.model.vision_model.gradient_checkpointing = True
+                #self.model.vision_model.encoder.gradient_checkpointing = True
             else:
                 self.model = AutoModelForCausalLM.from_pretrained(
                     pretrain_or_model,

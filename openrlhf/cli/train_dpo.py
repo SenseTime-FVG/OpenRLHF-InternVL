@@ -9,7 +9,13 @@ from openrlhf.datasets import RewardDataset
 from openrlhf.models import Actor
 from openrlhf.trainer import DPOTrainer
 from openrlhf.utils import blending_datasets, get_strategy, get_tokenizer
-
+from ..internvl.train.dpo.dpo_dataset_new import build_dpo_datasets
+from ..internvl.train.dataset import (TCSLoader, build_datasets)
+from ..internvl.patch import (concat_pad_data_collator, packed_pad_data_collator,
+                            replace_llama_rmsnorm_with_fused_rmsnorm,
+                            replace_train_sampler, replace_internlm2_attention_class,
+                            replace_qwen2_attention_class, dpo_concat_pad_data_collator,
+                            kto_concat_pad_data_collator)
 
 def train(args):
     # configure strategy
@@ -58,55 +64,87 @@ def train(args):
 
     # configure optimizer
     optim = strategy.create_optimizer(model, lr=args.learning_rate, betas=args.adam_betas, weight_decay=args.l2)
-
-    # prepare for data and dataset
-    train_data, eval_data = blending_datasets(
-        args.dataset,
-        args.dataset_probs,
-        strategy,
-        args.seed,
-        max_count=args.max_samples,
-        stopping_strategy="all_exhausted",
-        train_split=args.train_split,
-        eval_split=args.eval_split,
-    )
-    train_data = train_data.select(range(min(args.max_samples, len(train_data))))
-    eval_data = eval_data.select(range(min(args.max_samples, len(eval_data))))
-    train_dataset = RewardDataset(
-        train_data,
-        tokenizer,
-        args.max_len,
-        strategy,
-        input_template=args.input_template,
-        is_dpo=True,
-        multiple_of=args.ring_attn_size,
-    )
-    eval_dataset = RewardDataset(
-        eval_data,
-        tokenizer,
-        args.max_len,
-        strategy,
-        input_template=args.input_template,
-        is_dpo=True,
-        multiple_of=args.ring_attn_size,
-    )
+    if args.internvl:
+        # train_dataset = build_dpo_datasets(
+        #     data_args, tokenizer, tcs_loader, model, group_by_length=training_args.group_by_length,
+        #     dynamic_image_size=data_args.dynamic_image_size, use_thumbnail=data_args.use_thumbnail,
+        #     min_dynamic_patch=data_args.min_dynamic_patch, max_dynamic_patch=data_args.max_dynamic_patch,
+        #     normalize_type=data_args.normalize_type)
+        # 改成传arg
+        # data_args = None
+        from types import SimpleNamespace
+        data_args = SimpleNamespace(meta_path="/mnt/afs/wangjiahao/workspace/OpenRLHF/data/testdata.json",
+                                    force_image_aug=True,force_image_size=448,
+                                    conv_style="internlm2-chat-v3",pad2square=False,scale_threshold="v3",
+                                    use_data_resampling=False,
+                                    )
+        tcs_loader = TCSLoader('~/aoss.conf')
+        train_dataset = build_dpo_datasets(
+            data_args, tokenizer, tcs_loader, model.model, group_by_length=False,
+            dynamic_image_size=True, use_thumbnail=True,
+            min_dynamic_patch=1, max_dynamic_patch=12,
+            normalize_type='imagenet')
+        eval_dataset = None
+    else:
+        # prepare for data and dataset
+        train_data, eval_data = blending_datasets(
+            args.dataset,
+            args.dataset_probs,
+            strategy,
+            args.seed,
+            max_count=args.max_samples,
+            stopping_strategy="all_exhausted",
+            train_split=args.train_split,
+            eval_split=args.eval_split,
+        )
+        train_data = train_data.select(range(min(args.max_samples, len(train_data))))
+        eval_data = eval_data.select(range(min(args.max_samples, len(eval_data))))
+        train_dataset = RewardDataset(
+            train_data,
+            tokenizer,
+            args.max_len,
+            strategy,
+            input_template=args.input_template,
+            is_dpo=True,
+            multiple_of=args.ring_attn_size,
+        )
+        eval_dataset = RewardDataset(
+            eval_data,
+            tokenizer,
+            args.max_len,
+            strategy,
+            input_template=args.input_template,
+            is_dpo=True,
+            multiple_of=args.ring_attn_size,
+        )
 
     # prepare dataloader
-    train_dataloader = strategy.setup_dataloader(
-        train_dataset,
-        args.micro_train_batch_size,
-        True,
-        True,
-        train_dataset.packing_collate_fn if args.packing_samples else train_dataset.collate_fn,
-    )
-
-    eval_dataloader = strategy.setup_dataloader(
-        eval_dataset,
-        args.micro_train_batch_size,
-        True,
-        False,
-        eval_dataset.packing_collate_fn if args.packing_samples else eval_dataset.collate_fn,
-    )
+    if args.internvl:
+        train_dataloader = strategy.setup_dataloader(
+            train_dataset,
+            args.micro_train_batch_size,
+            True,
+            True,
+            dpo_concat_pad_data_collator,
+        )
+    else:
+        train_dataloader = strategy.setup_dataloader(
+            train_dataset,
+            args.micro_train_batch_size,
+            True,
+            True,
+            train_dataset.packing_collate_fn if args.packing_samples else train_dataset.collate_fn,
+        )
+    if eval_dataset:
+        eval_dataloader = strategy.setup_dataloader(
+            eval_dataset,
+            args.micro_train_batch_size,
+            True,
+            False,
+            eval_dataset.packing_collate_fn if args.packing_samples else eval_dataset.collate_fn,
+        )
+    else:
+        eval_dataloader = None
 
     # scheduler
     num_update_steps_per_epoch = len(train_dataset) // args.train_batch_size

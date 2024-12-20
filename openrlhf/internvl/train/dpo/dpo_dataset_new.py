@@ -16,24 +16,28 @@ import numpy as np
 import torch
 import torchvision.transforms as T
 import transformers
-from internvl.conversation import get_conv_template
+#from internvl.conversation import get_conv_template
 from PIL import Image
 from torch.utils.data import Dataset, ConcatDataset
 from torchvision.transforms.functional import InterpolationMode
-from internvl.train.constants import (CLIP_MEAN, CLIP_STD, IMAGENET_MEAN, IMAGENET_STD,
+# from internvl.train.constants import (CLIP_MEAN, CLIP_STD, IMAGENET_MEAN, IMAGENET_STD,
+#                         IMG_CONTEXT_TOKEN, IMG_END_TOKEN, IMG_START_TOKEN,
+#                         SIGLIP_MEAN, SIGLIP_STD, IGNORE_TOKEN_ID)
+from ..constants import (CLIP_MEAN, CLIP_STD, IMAGENET_MEAN, IMAGENET_STD,
                         IMG_CONTEXT_TOKEN, IMG_END_TOKEN, IMG_START_TOKEN,
                         SIGLIP_MEAN, SIGLIP_STD, IGNORE_TOKEN_ID)
-from internvl.train.dataset import preprocess_internlm_v2, preprocess_internlm_v3, preprocess_internlm, dynamic_preprocess_v2, dynamic_preprocess_v3, find_closest_aspect_ratio_v2, find_closest_aspect_ratio_v3, build_transform, dynamic_preprocess_old, dynamic_preprocess_v1
+# from internvl.train.dataset import preprocess_internlm_v2, preprocess_internlm_v3, preprocess_internlm, dynamic_preprocess_v2, dynamic_preprocess_v3, find_closest_aspect_ratio_v2, find_closest_aspect_ratio_v3, build_transform, dynamic_preprocess_old, dynamic_preprocess_v1
+from ..dataset import preprocess_internlm_v2, preprocess_internlm_v3, preprocess_internlm, dynamic_preprocess_v2, dynamic_preprocess_v3, find_closest_aspect_ratio_v2, find_closest_aspect_ratio_v3, build_transform, dynamic_preprocess_old, dynamic_preprocess_v1
 from trl.trainer.utils import pad_to_length
 # from accelerate import Accelerator, DeepSpeedPlugin
-from eval.model_factory import split_model
-from internvl.model import InternVLChatModel
+#from eval.model_factory import split_model
+#from internvl.model import InternVLChatModel
 import itertools
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import torch.amp as amp
 from contextlib import contextmanager, nullcontext
-from internvl.patch import dpo_concat_pad_data_collator
+#from internvl.patch import dpo_concat_pad_data_collator
 # from train_utils import conversation_lib
 import cv2
 from datasets import features, load_dataset
@@ -585,7 +589,8 @@ def build_dpo_datasets(data_args, tokenizer, tcs_loader, model, group_by_length=
             # dataset = DatasetRef(dataset=dataset, model=model)
           
                     
-        except Exception:
+        except Exception as e:
+            print(e)
             logger.info(f'Error in loading dataset: {ds_name}')
             exit()
         datasets.append(dataset)
