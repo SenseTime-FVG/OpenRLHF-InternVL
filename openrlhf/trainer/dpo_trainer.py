@@ -351,7 +351,7 @@ class DPOTrainer(ABC):
         aux_loss = output.aux_loss if "aux_loss" in output else []
         return chosen_logps, rejected_logps, aux_loss, -all_logps_mean[: chosen_ids.shape[0]].mean()
 
-    def concatenated_inputs(self, chosen_ids, c_mask, reject_ids, r_mask, prompt_id_lens):
+    def concatenated_inputs(self, chosen_ids, c_mask, reject_ids, r_mask, prompt_id_lens,mllm_data=None):
         """Concatenate the chosen and rejected inputs into a single tensor.
 
         Args:
@@ -627,6 +627,13 @@ class DPOTrainer(ABC):
             padding_value=self.padding_value,
             device="cuda:0",
         )
+        # concatenated_batch = self.concatenated_inputs(
+        #     chosen_ids=batch["chosen_input_ids"],
+        #     c_mask=batch["chosen_attention_mask"],
+        #     reject_ids=batch["rejected_input_ids"],
+        #     r_mask=batch["rejected_attention_mask"],
+        #     prompt_id_lens=1000
+        # )
         len_chosen = batch["chosen_labels"].shape[0]
         
         model_kwargs = {}
