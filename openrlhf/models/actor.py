@@ -5,7 +5,7 @@ import torch.distributed as dist
 import torch.nn as nn
 from peft import LoraConfig, TaskType, get_peft_model
 from peft.tuners.lora import LoraLayer
-from transformers import AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, BitsAndBytesConfig, set_seed
 from transformers.integrations.deepspeed import HfDeepSpeedConfig
 
 from .ring_attn_utils import convert_ring_attn_params
@@ -91,6 +91,8 @@ class Actor(nn.Module):
             if internvl:
                 #logger.info('Loading InternVLChatModel...')
                 print('Loading InternVLChatModel...')
+                # Set seed for torch dataloaders.
+                set_seed(42)
                 config = InternVLChatConfig.from_pretrained(pretrain_or_model)
                 config.vision_config.drop_path_rate = 0.4
                 if config.llm_config.model_type == 'internlm2':

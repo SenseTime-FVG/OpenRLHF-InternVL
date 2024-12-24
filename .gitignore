@@ -151,3 +151,4 @@ ckpt
 */checkpoint/*
 examples/scripts/test.sh
 examples/scripts/test_internvl.sh
+debug.sh

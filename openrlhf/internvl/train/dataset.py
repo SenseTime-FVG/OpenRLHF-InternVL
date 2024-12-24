@@ -251,6 +251,7 @@ def build_transform(is_train, input_size, pad2square=False, normalize_type='imag
         transform = T.Compose([
             T.Lambda(lambda img: img.convert('RGB') if img.mode != 'RGB' else img),
             T.RandomChoice([T.Lambda(jpeg_degrade_functions[quality]) for quality in qualities]),
+            #T.Lambda(jpeg_degrade_functions[qualities[0]]),
             T.Resize((input_size, input_size), interpolation=InterpolationMode.BICUBIC),
             T.ToTensor(),
             T.Normalize(mean=MEAN, std=STD)

@@ -112,7 +112,7 @@ class DPOTrainer(ABC):
             self.is_encoder_decoder = False
             self.is_vision_model = False
             self.label_pad_token_id = -100
-            self.padding_value = 0
+            self.padding_value = 151643
             self.loss_type = 'sigmoid'
 
         # Restore step and start_epoch

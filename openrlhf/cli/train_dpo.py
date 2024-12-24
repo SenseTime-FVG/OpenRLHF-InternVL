@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 
 from transformers.trainer import get_scheduler
-
+from transformers import set_seed
 from openrlhf.datasets import RewardDataset
 from openrlhf.models import Actor
 from openrlhf.trainer import DPOTrainer
@@ -24,6 +24,8 @@ def train(args):
 
     # configure model
     # load huggingface model
+    # Set seed for torch dataloaders.
+    set_seed(args.seed)
     model = Actor(
         args.pretrain,
         use_flash_attention_2=args.flash_attn,
@@ -65,25 +67,28 @@ def train(args):
     # configure optimizer
     optim = strategy.create_optimizer(model, lr=args.learning_rate, betas=args.adam_betas, weight_decay=args.l2)
     if args.internvl:
-        # train_dataset = build_dpo_datasets(
-        #     data_args, tokenizer, tcs_loader, model, group_by_length=training_args.group_by_length,
-        #     dynamic_image_size=data_args.dynamic_image_size, use_thumbnail=data_args.use_thumbnail,
-        #     min_dynamic_patch=data_args.min_dynamic_patch, max_dynamic_patch=data_args.max_dynamic_patch,
-        #     normalize_type=data_args.normalize_type)
+        tcs_loader = TCSLoader('~/aoss.conf')
+        # Set seed for torch dataloaders.
+        set_seed(args.seed)
+        train_dataset = build_dpo_datasets(
+            args, tokenizer, tcs_loader, model.model, group_by_length=args.group_by_length,
+            dynamic_image_size=args.dynamic_image_size, use_thumbnail=args.use_thumbnail,
+            min_dynamic_patch=args.min_dynamic_patch, max_dynamic_patch=args.max_dynamic_patch,
+            normalize_type=args.normalize_type)
         # 改成传arg
         # data_args = None
-        from types import SimpleNamespace
-        data_args = SimpleNamespace(meta_path="/mnt/afs/wangjiahao/workspace/OpenRLHF/data/testdata.json",
-                                    force_image_aug=True,force_image_size=448,
-                                    conv_style="internlm2-chat-v3",pad2square=False,scale_threshold="v3",
-                                    use_data_resampling=False,
-                                    )
-        tcs_loader = TCSLoader('~/aoss.conf')
-        train_dataset = build_dpo_datasets(
-            data_args, tokenizer, tcs_loader, model.model, group_by_length=False,
-            dynamic_image_size=True, use_thumbnail=True,
-            min_dynamic_patch=1, max_dynamic_patch=12,
-            normalize_type='imagenet')
+        # from types import SimpleNamespace
+        # data_args = SimpleNamespace(meta_path=args.dataset,
+        #                             force_image_aug=True,force_image_size=448,
+        #                             conv_style="internlm2-chat-v3",pad2square=False,scale_threshold="v3",
+        #                             use_data_resampling=False,
+        #                             )
+        # tcs_loader = TCSLoader('~/aoss.conf')
+        # train_dataset = build_dpo_datasets(
+        #     data_args, tokenizer, tcs_loader, model.model, group_by_length=False,
+        #     dynamic_image_size=True, use_thumbnail=True,
+        #     min_dynamic_patch=1, max_dynamic_patch=12,
+        #     normalize_type='imagenet')
         eval_dataset = None
     else:
         # prepare for data and dataset
@@ -288,7 +293,23 @@ if __name__ == "__main__":
 
     # TensorBoard parameters
     parser.add_argument("--use_tensorboard", type=str, default=None, help="TensorBoard logging path")
+    # internvl agrs
     parser.add_argument("--internvl", action="store_true",default=False, help="Use InternVL Model")
+    parser.add_argument("--meta_path", type=str, help="dataset")
+    parser.add_argument("--force_image_size", type=int, default=448, help="force_image_size")
+    parser.add_argument("--conv_style", type=str, default="internlm2-chat-v3", help="conv_style")
+    parser.add_argument("--use_data_resampling", action="store_true", default=False, help="use_data_resampling")
+    parser.add_argument("--pad2square", action="store_true", default=False, help="pad2square")
+    parser.add_argument("--scale_threshold", type=str, default="v3", help="scale_threshold")
+    parser.add_argument("--group_by_length", action="store_true", default=False, help="group_by_length")
+    parser.add_argument("--dynamic_image_size", action="store_true", default=True)
+    parser.add_argument("--use_thumbnail", action="store_true", default=True)
+    parser.add_argument("--min_dynamic_patch", type=int, default=1)
+    parser.add_argument("--max_dynamic_patch", type=int, default=12)
+    parser.add_argument("--normalize_type", type=str, default='imagenet')
+    parser.add_argument("--force_image_aug", action="store_true", default=True)
+
+
 
     args = parser.parse_args()
 
