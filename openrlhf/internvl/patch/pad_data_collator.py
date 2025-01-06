@@ -193,6 +193,10 @@ def dpo_concat_pad_data_collator(features, pad_id=0):
             else:
                 batch[k] = torch.concat([f[k] for f in features])
     return batch
+    # mllm_keys = ["pixel_values","image_flags"]
+    # mllm_data = {key: batch[key] for key in mllm_keys if key in batch}
+    # prompt_id_lens = [int((batch["chosen_labels"]==-100).sum())]
+    # return batch["chosen_input_ids"],batch["chosen_attention_mask"],batch["rejected_input_ids"],batch["rejected_attention_mask"],prompt_id_lens,mllm_data
 
 def kto_concat_pad_data_collator(features, pad_id=0):
 

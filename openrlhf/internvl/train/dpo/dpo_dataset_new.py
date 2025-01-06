@@ -444,6 +444,10 @@ class DPO_Dataset(Dataset):
         #     )
             # 'chosen_input_ids', 'chosen_attention_mask', 'chosen_labels', 'rejected_input_ids', 'rejected_attention_mask', 'rejected_labels', 
         return ret
+        # mllm_keys = ["pixel_values","image_flags"]
+        # mllm_data = {key: ret[key] for key in mllm_keys if key in ret}
+        # prompt_id_lens = [int((ret["chosen_labels"]==-100).sum())]
+        # return ret["chosen_input_ids"],ret["chosen_attention_mask"],ret["rejected_input_ids"],ret["rejected_attention_mask"],prompt_id_lens,mllm_data
 
 
     def add_column(self, name, column_data):
@@ -510,6 +514,10 @@ class DPO_Dataset(Dataset):
                 sys.stdout.flush()
         # print(ret.keys())
         return ret
+        # mllm_keys = ["pixel_values","image_flags"]
+        # mllm_data = {key: ret[key] for key in mllm_keys if key in ret}
+        # prompt_id_lens = [int((ret["chosen_labels"]==-100).sum())]
+        # return ret["chosen_input_ids"],ret["chosen_attention_mask"],ret["rejected_input_ids"],ret["rejected_attention_mask"],prompt_id_lens,mllm_data
 
     
     # def map(self, func, **kwargs):

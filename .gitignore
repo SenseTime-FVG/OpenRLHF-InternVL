@@ -152,3 +152,5 @@ ckpt
 examples/scripts/test.sh
 examples/scripts/test_internvl.sh
 debug.sh
+examples/scripts/test_internvl_srun.sh
+examples/scripts/test_internvl_mtrain.sh

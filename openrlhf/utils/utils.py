@@ -30,6 +30,7 @@ def get_tokenizer(pretrain, model, padding_side="left", strategy=None, use_fast=
         tokenizer.tokenizer_path = tokenizer_path
         #tokenizer.model_max_length = data_args.max_seq_length
         tokenizer.model_max_length = 8192
+        tokenizer.pad_token_id = 151643
         #改成参数
         #if model_args.add_special_token:
         add_special_token = True
