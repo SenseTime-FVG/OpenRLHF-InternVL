@@ -65,7 +65,8 @@ def train(args):
         )
 
     # configure optimizer
-    optim = strategy.create_optimizer(model, lr=args.learning_rate, betas=args.adam_betas, weight_decay=args.l2)
+    optim = strategy.create_optimizer(model, lr=args.learning_rate, betas=args.adam_betas,
+                                      eps=args.adam_epsilon, weight_decay=args.l2)
     if args.internvl:
         tcs_loader = TCSLoader('~/aoss.conf')
         # Set seed for torch dataloaders.
@@ -112,6 +113,7 @@ def train(args):
             input_template=args.input_template,
             is_dpo=True,
             multiple_of=args.ring_attn_size,
+            num_processors=1
         )
         eval_dataset = RewardDataset(
             eval_data,
@@ -129,7 +131,7 @@ def train(args):
             train_dataset,
             args.micro_train_batch_size,
             True,
-            True,
+            False,
             dpo_concat_pad_data_collator,
         )
     else:
@@ -156,11 +158,11 @@ def train(args):
     max_steps = math.ceil(args.max_epochs * num_update_steps_per_epoch)
 
     scheduler = get_scheduler(
-        "cosine_with_min_lr",
+        args.lr_scheduler_type,   #"cosine_with_min_lr"
         optim,
         num_warmup_steps=math.ceil(max_steps * args.lr_warmup_ratio),
         num_training_steps=max_steps,
-        scheduler_specific_kwargs={"min_lr": args.learning_rate * 0.1},
+        #scheduler_specific_kwargs={"min_lr": args.learning_rate * 0.1},
     )
 
     # strategy prepare
@@ -222,6 +224,7 @@ if __name__ == "__main__":
     parser.add_argument("--ref_offload", action="store_true", default=False)
     parser.add_argument("--learning_rate", type=float, default=1e-5)
     parser.add_argument("--lr_warmup_ratio", type=float, default=0.03)
+    parser.add_argument("--lr_scheduler_type", type=str, default="cosine")
     parser.add_argument("--zpg", type=int, default=1, help="ZeRO++ max partition size")
     parser.add_argument("--adam_offload", action="store_true", default=False, help="Offload Adam Optimizer")
     parser.add_argument("--flash_attn", action="store_true", default=False, help="Enable FlashAttention2")
@@ -239,7 +242,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--nll_loss_coef", type=float, default=0, help="Regularization with NLL loss, see LLama 3.1 tech report."
     )
-    parser.add_argument("--adam_betas", type=float, nargs=2, default=(0.9, 0.95), help="Betas for Adam optimizer")
+    parser.add_argument("--adam_betas", type=float, nargs=2, default=(0.9, 0.98), help="Betas for Adam optimizer")
+    parser.add_argument("--adam_epsilon", type=float, default=1.0e-6, help="epsilon for Adam optimizer")
+
 
     # Context Parallel
     parser.add_argument("--ring_attn_size", type=int, default=1, help="Ring attention group size")

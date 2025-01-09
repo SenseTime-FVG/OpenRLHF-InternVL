@@ -187,6 +187,7 @@ class DPOTrainer(ABC):
                         
                     #else:
                     mllm_data=None
+                    reference_chosen_logps = None
                     if args.internvl:
                         #chosen_ids, c_mask, reject_ids, r_mask, prompt_id_lens, mllm_data = data
                         chosen_ids=data["chosen_input_ids"].to(torch.cuda.current_device())
@@ -196,8 +197,8 @@ class DPOTrainer(ABC):
                         mllm_keys = ["pixel_values","image_flags"]
                         mllm_data = {key: data[key] for key in mllm_keys if key in data}
                         prompt_id_lens = [int((data["chosen_labels"]==-100).sum())]
-                        reference_chosen_logps = data["reference_chosen_logps"].to(torch.cuda.current_device())
-                        reference_rejected_logps = data["reference_rejected_logps"].to(torch.cuda.current_device())
+                        reference_chosen_logps = data["reference_chosen_logps"].to(torch.cuda.current_device()).to(torch.bfloat16)
+                        reference_rejected_logps = data["reference_rejected_logps"].to(torch.cuda.current_device()).to(torch.bfloat16)
                     else:
                         chosen_ids, c_mask, reject_ids, r_mask, prompt_id_lens = data
                         chosen_ids = chosen_ids.squeeze(1).to(torch.cuda.current_device())
@@ -375,8 +376,8 @@ class DPOTrainer(ABC):
         )
         if mllm_data:
             output = model.model(
-                input_ids=input_ids.to(torch.cuda.current_device()),
-                attention_mask=att_masks.to(torch.cuda.current_device()),
+                input_ids=input_ids,
+                attention_mask=att_masks,
                 pixel_values=pixel_values.to(torch.bfloat16).to(torch.cuda.current_device()),
                 image_flags=image_flags,
                 use_cache=False
@@ -430,7 +431,7 @@ class DPOTrainer(ABC):
             image_flags = mllm_data['image_flags'].repeat(2)
 
             #prompt_id_lens = [int((mllm_data["chosen_labels"]==-100).sum())] * 2
-            return inputs_ids, att_masks, prompt_id_lens * 2, image_flags, pixel_values
+            #return inputs_ids, att_masks, prompt_id_lens * 2, image_flags, pixel_values
 
         return inputs_ids, att_masks, prompt_id_lens * 2, image_flags, pixel_values
 

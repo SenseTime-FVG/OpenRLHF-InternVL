@@ -310,6 +310,7 @@ class DPO_Dataset(Dataset):
             assert type(data_item['image']) is list
             image_files = data_item['image']
         image_list = []
+        #print(image_files)
         if self.read_image:
             for image_file in image_files:
                 image_file = os.path.join(self.root, image_file) if not image_file.startswith('s3://') else self.root + image_file

@@ -94,7 +94,7 @@ class Actor(nn.Module):
                 # Set seed for torch dataloaders.
                 set_seed(42)
                 config = InternVLChatConfig.from_pretrained(pretrain_or_model)
-                config.vision_config.drop_path_rate = 0.4
+                config.vision_config.drop_path_rate = 0
                 if config.llm_config.model_type == 'internlm2':
                     config.llm_config.attn_implementation = 'flash_attention_2'  # for InternLM
                     #logger.info('Using flash_attention_2 for InternLM')
@@ -125,6 +125,9 @@ class Actor(nn.Module):
                 self.model.config.force_image_size = 448
                 self.model.num_image_token = 256
                 self.model.language_model.config.use_cache = False
+                self.model.vision_model.gradient_checkpointing = True
+                self.model.vision_model.encoder.gradient_checkpointing = True
+                self.model.language_model._set_gradient_checkpointing()
                 #self.model.vision_model.gradient_checkpointing = True
                 #self.model.vision_model.encoder.gradient_checkpointing = True
             else:
