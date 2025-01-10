@@ -115,7 +115,7 @@ class DPOTrainer(ABC):
             self.padding_value = 151643
             self.loss_type = 'sigmoid'
             self.internvl = args.internvl
-            del self.ref_model
+            #del self.ref_model
 
         # Restore step and start_epoch
         step = consumed_samples // args.train_batch_size * self.strategy.accumulated_gradient + 1
@@ -210,11 +210,12 @@ class DPOTrainer(ABC):
                         self.model, chosen_ids, c_mask, reject_ids, r_mask, prompt_id_lens,mllm_data
                     )
                     
-                    if not reference_chosen_logps:
-                        with torch.no_grad():
-                            reference_chosen_logps, reference_rejected_logps, _, _ = self.concatenated_forward(
-                                self.ref_model, chosen_ids, c_mask, reject_ids, r_mask, prompt_id_lens,mllm_data
-                            )
+                    #if not reference_chosen_logps:
+                    
+                    with torch.no_grad():
+                        reference_chosen_logps, reference_rejected_logps, _, _ = self.concatenated_forward(
+                            self.ref_model, chosen_ids, c_mask, reject_ids, r_mask, prompt_id_lens,mllm_data
+                        )
                 else:
                     packed_input_ids, packed_attention_masks, packed_seq_lens, prompt_id_lens = data
                     packed_input_ids, packed_attention_masks = packed_input_ids.to(
@@ -382,7 +383,8 @@ class DPOTrainer(ABC):
                 image_flags=image_flags,
                 use_cache=False
                 )
-            all_logits = output.logits
+            #all_logits = output.logits
+            all_logits = output.logits.to(torch.bfloat16)  
         else:
             output = model(input_ids, attention_mask=att_masks, return_output=True)
             all_logits = output["logits"]
