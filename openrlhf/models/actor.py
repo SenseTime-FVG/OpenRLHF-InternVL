@@ -64,7 +64,8 @@ class Actor(nn.Module):
         device_map=None,
         packing_samples=False,
         internvl=False,
-        **kwargs,
+        args=None,
+        **kwargs
     ) -> None:
         super().__init__()
 
@@ -112,18 +113,19 @@ class Actor(nn.Module):
                 # config.min_dynamic_patch = data_args.min_dynamic_patch
                 # config.max_dynamic_patch = data_args.max_dynamic_patch
                 config.template = "internlm2-chat-v3"
-                config.select_layer = -1
-                config.dynamic_image_size = True
-                config.use_thumbnail = True
-                config.ps_version = 'v2'
-                config.min_dynamic_patch = 1
-                config.max_dynamic_patch = 12
+                config.select_layer = args.vision_select_layer
+                config.dynamic_image_size = not(args.not_dynamic_image_size)
+                config.use_thumbnail = not(args.not_use_thumbnail)
+                config.ps_version = args.ps_version
+                config.min_dynamic_patch = args.min_dynamic_patch
+                config.max_dynamic_patch = args.max_dynamic_patch
                 self.model = InternVLChatModel.from_pretrained(
                     pretrain_or_model, torch_dtype=torch.bfloat16, config=config)
-                self.model.img_context_token_id = 151667
-                self.model.neftune_alpha = None
-                self.model.config.force_image_size = 448
-                self.model.num_image_token = 256
+                self.model.img_context_token_id = args.img_context_token_id
+                self.model.neftune_alpha = args.neftune_alpha
+                self.model.config.force_image_size = args.force_image_size
+                patch_size = self.model.config.vision_config.patch_size
+                self.model.num_image_token = int((args.force_image_size // patch_size) ** 2 * (args.down_sample_ratio ** 2))
                 self.model.language_model.config.use_cache = False
                 self.model.vision_model.gradient_checkpointing = True
                 self.model.vision_model.encoder.gradient_checkpointing = True

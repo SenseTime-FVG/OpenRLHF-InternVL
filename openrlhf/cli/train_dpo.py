@@ -25,7 +25,6 @@ def train(args):
     # configure model
     # load huggingface model
     # Set seed for torch dataloaders.
-    set_seed(args.seed)
     model = Actor(
         args.pretrain,
         use_flash_attention_2=args.flash_attn,
@@ -37,7 +36,8 @@ def train(args):
         target_modules=args.target_modules,
         ds_config=strategy.get_ds_train_config(is_actor=True),
         packing_samples=args.packing_samples,
-        internvl=args.internvl
+        internvl=args.internvl,
+        args=args
     )
 
     # configure tokenizer
@@ -52,7 +52,8 @@ def train(args):
         load_in_4bit=args.load_in_4bit,
         ds_config=strategy.get_ds_eval_config(offload=args.ref_offload),
         packing_samples=args.packing_samples,
-        internvl=args.internvl
+        internvl=args.internvl,
+        args=args
     )
     if args.ref_offload:
         ref_model._offload = True
@@ -70,26 +71,11 @@ def train(args):
     if args.internvl:
         tcs_loader = TCSLoader('~/aoss.conf')
         # Set seed for torch dataloaders.
-        set_seed(args.seed)
         train_dataset = build_dpo_datasets(
             args, tokenizer, tcs_loader, model.model, group_by_length=args.group_by_length,
-            dynamic_image_size=args.dynamic_image_size, use_thumbnail=args.use_thumbnail,
+            dynamic_image_size=not(args.not_dynamic_image_size), use_thumbnail=not(args.not_use_thumbnail),
             min_dynamic_patch=args.min_dynamic_patch, max_dynamic_patch=args.max_dynamic_patch,
             normalize_type=args.normalize_type)
-        # 改成传arg
-        # data_args = None
-        # from types import SimpleNamespace
-        # data_args = SimpleNamespace(meta_path=args.dataset,
-        #                             force_image_aug=True,force_image_size=448,
-        #                             conv_style="internlm2-chat-v3",pad2square=False,scale_threshold="v3",
-        #                             use_data_resampling=False,
-        #                             )
-        # tcs_loader = TCSLoader('~/aoss.conf')
-        # train_dataset = build_dpo_datasets(
-        #     data_args, tokenizer, tcs_loader, model.model, group_by_length=False,
-        #     dynamic_image_size=True, use_thumbnail=True,
-        #     min_dynamic_patch=1, max_dynamic_patch=12,
-        #     normalize_type='imagenet')
         eval_dataset = None
     else:
         # prepare for data and dataset
@@ -131,7 +117,7 @@ def train(args):
             train_dataset,
             args.micro_train_batch_size,
             True,
-            False,
+            True,
             dpo_concat_pad_data_collator,
         )
     else:
@@ -307,12 +293,19 @@ if __name__ == "__main__":
     parser.add_argument("--pad2square", action="store_true", default=False, help="pad2square")
     parser.add_argument("--scale_threshold", type=str, default="v3", help="scale_threshold")
     parser.add_argument("--group_by_length", action="store_true", default=False, help="group_by_length")
-    parser.add_argument("--dynamic_image_size", action="store_true", default=True)
-    parser.add_argument("--use_thumbnail", action="store_true", default=True)
+    parser.add_argument("--not_dynamic_image_size", action="store_true", default=False)
+    parser.add_argument("--not_use_thumbnail", action="store_true", default=False)
     parser.add_argument("--min_dynamic_patch", type=int, default=1)
     parser.add_argument("--max_dynamic_patch", type=int, default=12)
     parser.add_argument("--normalize_type", type=str, default='imagenet')
     parser.add_argument("--force_image_aug", action="store_true", default=True)
+    parser.add_argument("--vision_select_layer", type=int, default=-1)
+    parser.add_argument("--ps_version", type=str, default="v2")
+    parser.add_argument("--img_context_token_id", type=int, default=151667)
+    parser.add_argument("--neftune_alpha", default=None)
+    parser.add_argument("--down_sample_ratio", type=float,default=0.5)
+    
+
 
 
 

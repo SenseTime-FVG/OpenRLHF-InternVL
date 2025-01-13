@@ -147,45 +147,6 @@ class DPOTrainer(ABC):
             # train
             for data in self.train_dataloader:
                 if not self.packing_samples:
-                    #if args.internvl:
-                        # policy_output = self.concatenated_forward_internvl(self.model, data)
-                        # (
-                        #     chosen_logps,
-                        #     rejected_logps,
-                        #     chosen_logits,
-                        #     rejected_logits,
-                        #     nll_loss,
-                        # ) = policy_output[:5]
-                        # if self.aux_loss_enabled:
-                        #     aux_loss = policy_output[5]
-                        # else:
-                        #     aux_loss = 0
-
-                        # with torch.no_grad():
-                        #     policy_output = self.concatenated_forward_internvl(self.ref_model, data)
-                        #     (
-                        #         reference_chosen_logps,
-                        #         reference_rejected_logps,
-                        #         reference_chosen_logits,
-                        #         reference_rejected_logits,
-                        #         reference_nll_loss,
-                        #     ) = policy_output[:5]
-                        # chosen_ids=data["chosen_input_ids"].to(torch.cuda.current_device())
-                        # c_mask=data["chosen_attention_mask"].to(torch.cuda.current_device())
-                        # reject_ids=data["rejected_input_ids"].to(torch.cuda.current_device())
-                        # r_mask=data["rejected_attention_mask"].to(torch.cuda.current_device())
-                        # mllm_keys = ["pixel_values","image_flags"]
-                        # mllm_data = {key: data[key] for key in mllm_keys if key in data}
-                        # prompt_id_lens = [int((data["chosen_labels"]==-100).sum())]
-                        # chosen_logps, rejected_logps, aux_loss, nll_loss = self.concatenated_forward(
-                        #     self.model, chosen_ids, c_mask, reject_ids, r_mask, prompt_id_lens,mllm_data
-                        # )
-                        # with torch.no_grad():
-                        #     reference_chosen_logps, reference_rejected_logps, _, _ = self.concatenated_forward(
-                        #         self.ref_model, chosen_ids, c_mask, reject_ids, r_mask, prompt_id_lens,mllm_data
-                        #     )
-                        
-                    #else:
                     mllm_data=None
                     reference_chosen_logps = None
                     if args.internvl:
